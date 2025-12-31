@@ -34,5 +34,5 @@ func (sh *Hash) generateKey() {
 
 // Store stores the hash in the database
 func (sh *Hash) Store() error {
-	return cache.StoreHash(sh)
+	return krkn.StoreHash(sh)
 }

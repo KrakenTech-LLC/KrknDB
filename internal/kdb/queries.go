@@ -2,6 +2,7 @@ package kdb
 
 import (
 	"bytes"
+	"encoding/binary"
 	"encoding/json"
 	"fmt"
 	"iter"
@@ -15,7 +16,7 @@ func (kc *KDB) StoreHash(sh *Hash) error {
 	kc.mu.Lock()
 	defer kc.mu.Unlock()
 
-	return kc.c.Update(func(txn *badger.Txn) error {
+	err := kc.c.Update(func(txn *badger.Txn) error {
 		// Marshal the hash to JSON
 		data, err := json.Marshal(sh)
 		if err != nil {
@@ -25,6 +26,16 @@ func (kc *KDB) StoreHash(sh *Hash) error {
 		// Store the hash with the generated key
 		return txn.Set(sh.Key, data)
 	})
+
+	if err != nil {
+		return fmt.Errorf("failed to store hash: %w", err)
+	}
+
+	// Increment the total hash count
+	kc.incrementTotalHashCount()
+	kc.incrementHashTypeCount(sh.HashType)
+
+	return nil
 }
 
 // GetHashBySum retrieves a hash by its hex-encoded SHA256 sum and hash type
@@ -267,4 +278,55 @@ func (kc *KDB) SearchHashesByPrefix(hexPrefix string, hashType uint64) iter.Seq[
 			_ = err
 		}
 	}
+}
+
+func (kc *KDB) getCount(key string) (int, error) {
+	var count int
+
+	err := kc.c.View(func(txn *badger.Txn) error {
+		item, err := txn.Get([]byte(key))
+		if err != nil {
+			return err
+		}
+
+		return item.Value(func(val []byte) error {
+			count = int(binary.BigEndian.Uint64(val))
+			return nil
+		})
+	})
+
+	if err != nil {
+		return 0, err
+	}
+
+	return count, nil
+}
+
+func (kc *KDB) updateCount(key string, delta int) error {
+	return kc.c.Update(func(txn *badger.Txn) error {
+		var count int
+		item, err := txn.Get([]byte(key))
+		if err != nil && err != badger.ErrKeyNotFound {
+			return err
+		}
+
+		if err == nil {
+			err = item.Value(func(val []byte) error {
+				count = int(binary.BigEndian.Uint64(val))
+				return nil
+			})
+			if err != nil {
+				return err
+			}
+		}
+
+		count += delta
+		return txn.Set([]byte(key), []byte(fmt.Sprintf("%d", count)))
+	})
+}
+
+func (kc *KDB) initializeCounter(key string, initial int) error {
+	return kc.c.Update(func(txn *badger.Txn) error {
+		return txn.Set([]byte(key), []byte(fmt.Sprintf("%d", initial)))
+	})
 }

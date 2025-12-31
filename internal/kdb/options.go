@@ -1,11 +1,41 @@
 package kdb
 
 import (
+	"fmt"
 	"runtime"
 	"time"
 
 	"github.com/dgraph-io/badger/v3/options"
 )
+
+type Severity int
+
+const (
+	Debug Severity = iota
+	Info
+	Warning
+	Error
+	Fatal
+)
+
+type Logger = func(string, Severity)
+
+var DefaultLogger = func(msg string, severity Severity) {
+	line := ""
+	switch severity {
+	case Debug:
+		line = fmt.Sprintf("[DEBUG] %s\n", msg)
+	case Info:
+		line = fmt.Sprintf("[INFO] %s\n", msg)
+	case Warning:
+		line = fmt.Sprintf("[WARNING] %s\n", msg)
+	case Error:
+		line = fmt.Sprintf("[ERROR] %s\n", msg)
+	case Fatal:
+		line = fmt.Sprintf("[FATAL] %s\n", msg)
+	}
+	fmt.Print(line)
+}
 
 /*
 Options represents the options for the KDB
@@ -18,7 +48,7 @@ EncryptionKeyRotationDuration: The duration after which the encryption key will 
 
 NumVersionsToKeep: The number of versions to keep for each key
 
-IndexCacheSize: The size of the index cache in bytes (should be large enough to hold the entire index)
+IndexCacheSize: The size of the index krkn in bytes (should be large enough to hold the entire index)
 
 ValueThreshold: The threshold size for values below which they will be inlined in the data block
 
@@ -56,6 +86,7 @@ type Options struct {
 	BaseLevelSize                 int64
 	MaxLevels                     int
 	BloomFalsePositive            float64
+	Logger                        Logger
 }
 
 /*
@@ -67,7 +98,7 @@ DefaultOptions returns the default options for the KDB
 
 	NumVersionsToKeep: 1 - Only keep the latest version of each key
 
-	IndexCacheSize: 10GB - 10GB index cache
+	IndexCacheSize: 10GB - 10GB index krkn
 
 	ValueThreshold: 64KB - Values below this size will be inlined in the data block
 
@@ -106,5 +137,6 @@ func DefaultOptions() *Options {
 		BaseLevelSize:                 20 << 30,
 		MaxLevels:                     7,
 		BloomFalsePositive:            0.01,
+		Logger:                        DefaultLogger,
 	}
 }
