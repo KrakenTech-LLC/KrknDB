@@ -14,7 +14,6 @@ import (
 // StoreHash stores a hash in the database
 func (kc *KDB) StoreHash(sh *Hash) error {
 	kc.mu.Lock()
-	defer kc.mu.Unlock()
 	err := kc.c.Update(func(txn *badger.Txn) error {
 		// Marshal the hash to JSON
 		data, err := json.Marshal(sh)
@@ -25,6 +24,7 @@ func (kc *KDB) StoreHash(sh *Hash) error {
 		// Store the hash with the generated key
 		return txn.Set(sh.Key, data)
 	})
+	kc.mu.Unlock()
 
 	if err != nil {
 		return fmt.Errorf("failed to store hash: %w", err)
