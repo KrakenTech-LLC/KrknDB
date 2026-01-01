@@ -15,7 +15,6 @@ import (
 func (kc *KDB) StoreHash(sh *Hash) error {
 	kc.mu.Lock()
 	defer kc.mu.Unlock()
-
 	err := kc.c.Update(func(txn *badger.Txn) error {
 		// Marshal the hash to JSON
 		data, err := json.Marshal(sh)
@@ -31,7 +30,7 @@ func (kc *KDB) StoreHash(sh *Hash) error {
 		return fmt.Errorf("failed to store hash: %w", err)
 	}
 
-	// Increment the total hash count
+	// Increment the total hash count (outside the mutex lock to avoid deadlock)
 	kc.incrementTotalHashCount()
 	kc.incrementHashTypeCount(sh.HashType)
 
@@ -303,12 +302,6 @@ func (kc *KDB) getCount(key string) (int, error) {
 }
 
 func (kc *KDB) updateCount(key string, delta int) error {
-	// Check if the key exists
-	// If it doesn't, create it with the initial value
-	// Otherwise, increment the value
-	kc.mu.Lock()
-	defer kc.mu.Unlock()
-
 	return kc.c.Update(func(txn *badger.Txn) error {
 		var count int
 		item, err := txn.Get([]byte(key))
