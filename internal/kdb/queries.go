@@ -8,7 +8,7 @@ import (
 	"iter"
 
 	"github.com/KrakenTech-LLC/KrknDB/internal/util"
-	"github.com/dgraph-io/badger/v3"
+	"github.com/dgraph-io/badger/v4"
 )
 
 // StoreHash stores a hash in the database
