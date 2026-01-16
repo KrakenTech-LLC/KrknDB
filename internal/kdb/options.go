@@ -22,17 +22,18 @@ type Logger = func(string, Severity)
 
 var DefaultLogger = func(msg string, severity Severity) {
 	line := ""
+	now := time.Now().Format("2006-01-02 15:04:05")
 	switch severity {
 	case Debug:
-		line = fmt.Sprintf("[DEBUG] %s\n", msg)
+		line = fmt.Sprintf("%s; severity=debug; %s\n", now, msg)
 	case Info:
-		line = fmt.Sprintf("[INFO] %s\n", msg)
+		line = fmt.Sprintf("%s; severity=info; %s\n", now, msg)
 	case Warning:
-		line = fmt.Sprintf("[WARNING] %s\n", msg)
+		line = fmt.Sprintf("%s; severity=warning; %s\n", now, msg)
 	case Error:
-		line = fmt.Sprintf("[ERROR] %s\n", msg)
+		line = fmt.Sprintf("%s; severity=error; %s\n", now, msg)
 	case Fatal:
-		line = fmt.Sprintf("[FATAL] %s\n", msg)
+		line = fmt.Sprintf("%s; severity=fatal; %s\n", now, msg)
 	}
 	fmt.Print(line)
 }
